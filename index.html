@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercício do Alien</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style> body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; } </style>
+</head>
+
+<body>
+    <script>
+        // a largura e a altura da pagina são definidas como constantes, assim podemos usar tais dados em outras partes do código
+        const larguraJogo = 700;
+        const alturaJogo = 850;
+
+        // a configuração das proporções da pagina html são definidas aqui, nesse caso, ao invés do próprio valor são usadas as constantes definidas anteriormente
+        const config = {
+            type: Phaser.AUTO,
+            width: larguraJogo,
+            height: alturaJogo,
+            //configuração da definição de fisica do jogo
+            physics: {
+                default: 'arcade', 
+                arcade: {
+                    gravity: { y: 300},
+                    debug: true
+                }
+
+            },
+
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        // é aqui que podem ser configurados diversos parâmetros do jogo, ou seja, estamos instanciando um novo jogo e chamando o de 'game'
+        const game = new Phaser.Game(config);
+        var alien;
+        var teclado;
+        var fogo;
+        var plataforma;
+        var placar; 
+        var pontuacao = 0;
+        var passarinho;
+
+        function preload() {
+            //carregando as imagens que serão usadas
+            this.load.image('background', 'assets/bg.png');
+            this.load.image('player', 'assets/alienigena.png');
+            this.load.image('turbo_nave', 'assets/turbo.png');
+            this.load.image('plataforma_tijolo', 'assets/tijolos.png');
+            this.load.image('moeda', 'assets/moeda.png');
+            this.load.spritesheet('passaro', 'assets/bird-red.png', {frameWidth: 75, frameHeight: 75});
+        }
+
+        function create() {
+            // o background do jogo é adicionado, preenchendo metade da altura e largura da página
+            this.add.image(larguraJogo/2, alturaJogo/2, 'background');
+
+            //adicionando o sprite do fogo e o deixando invisível
+            fogo = this.add.sprite(0, 0, 'turbo_nave');
+            fogo.setVisible(false);
+            //criando o sprite do alien e criando sua colisão com as bordas do jogo
+            alien = this.physics.add.sprite(larguraJogo/2, 0, 'player');
+            alien.setColliderWorldBounds(true);
+
+            //usando a variável 'teclado' e criando dentro dela as teclas de movimentação
+            teclado = this.input.keyboard.createCursorKeys();
+
+            //criando o sprite das plataformas e adicionando física a elas, fazendo-as colidir com o alien
+            plataforma = this.physics.add.staticImage(larguraJogo/2, alturaJogo/2, 'plataforma_tijolo');
+            this.physics.add.collider(alien, plataforma);
+
+            //criando o sprite do pássaro e adicionando física a ele
+            passarinho = this.physics.add.sprite(100, 300, 'verdin').setScale(1.3);
+            this.physics.add.collider(alien, passarinho);
+
+            //animacao passarinho
+            this.anims.create({
+        key: 'voo',
+        frames: this.anims.generateFrameNumbers('verdin', {start: 0, end: 7}),
+        frameRate: 10,
+        repeat: -1
+    });
+            //dar play na animação
+        passarinho.anims.play('voo', true);
+
+            //adicionando as moedas e configurando sua física, seus limites, sua colisão e o fato de quicarem no chão
+            moeda = this.physics.add.sprite(larguraJogo/2, 0, 'moeda');
+            moeda.setColliderWorldBounds(true);
+            moeda.setBounce(0.7);
+            this.physics.add.collider(moeda, plataforma);
+
+            //adicionando o texto do placar dentro da variavel 'placar', usando a variavel 'pontuaçao' para defini-lo
+            placar = this.add.text(50, 50, 'Moedas: ' + pontuacao, {fontSize: '45px', fill: '#495613'});
+
+            //adicionando uma relaçao de sobreposiçao entre a hitbox das moedas e do alien, escondendo as moedas após o evento
+            this.physics.add.overlap(alien, moeda, function(){
+                moeda.setVisible(false);
+                //gerando uma posiçao aleatoria para spawnar as moedas, e fazendo com que ao coletá-las, o placar atualiza
+                var posicaoMoeda_Y = Phaser.math.RND.between(50, 650);
+                moeda.setPosition (posicaoMoeda_Y, 100)
+                pontuacao += 1;
+                placar.setText('Moedas: ' + pontuacao);
+                moeda.setVisible(true);
+            })
+
+
+        }
+
+        function update() {
+//configuração da movimentação do passarinho pela tela
+            if (passarinho.x === 100) {
+        passarinho.setFlip(false, false);
+        passarinho.ida = true;
+            }
+            if (passarinho.x < 700 && passarinho.ida === true) {
+                passarinho.x += 5;
+            }
+            if(passarinho.x === 700) {
+            passarinho.setFlip(true, false);
+            passarinho.ida = false;
+            }
+            if(passarinho.ida === false && passarinho.x > 100) {
+                passarinho.x -= 5;
+            }
+
+            //se a seta para esquerda foi apertada, a velocidade horizontal do alien aumenta, mesma coisa para direita
+            if(teclado.left.isDown) {
+                alien.setVelocityX (-150);
+                console.log('esquerda');
+            }
+            else if(teclado.right.isDown) {
+                alien.setVelocityX(150);
+            }
+            //se nenhuma tecla de mov foi pressionada, a velocidade do alien se torna 0
+            else {
+                alien.setVelocityX(0);
+            }
+            //se a tecla para cima foi pressionada, a velocidade vertical do alien aumenta e a funçao de 'ativar o turbo' é chamada
+            if (teclado.up.isDown) {
+                alien.setVelocityY (-150);
+                ativarTurbo();
+            }
+            //se a seta para cima nao foi pressionada, a funçao de nao ativar o turbo é chamada
+            else {
+                semTurbo();
+            }
+            //definindo a posicao do fogo, bem abaixo das coordenadas do alien
+            fogo.setPosition(alien.x, alien.y + alien.height/2);
+        }
+        function ativarTurbo() {
+            fogo.setVisible(true);
+        }
+        function semTurbo() {
+            fogo.setVisible(false);
+        }
+
+
+    </script>
+</body>
+</html>
