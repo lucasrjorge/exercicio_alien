@@ -65,7 +65,7 @@
             fogo.setVisible(false);
             //criando o sprite do alien e criando sua colisão com as bordas do jogo
             alien = this.physics.add.sprite(larguraJogo/2, 0, 'player');
-            alien.setColliderWorldBounds(true);
+            alien.setCollideWorldBounds(true);
 
             //usando a variável 'teclado' e criando dentro dela as teclas de movimentação
             teclado = this.input.keyboard.createCursorKeys();
@@ -90,7 +90,7 @@
 
             //adicionando as moedas e configurando sua física, seus limites, sua colisão e o fato de quicarem no chão
             moeda = this.physics.add.sprite(larguraJogo/2, 0, 'moeda');
-            moeda.setColliderWorldBounds(true);
+            moeda.setCollideWorldBounds(true);
             moeda.setBounce(0.7);
             this.physics.add.collider(moeda, plataforma);
 
